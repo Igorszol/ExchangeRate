@@ -6,20 +6,28 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using ExchangeRate.Models;
+using System.Net;
+using System.Net.Http;
+using Newtonsoft.Json.Linq;
+using System.Reflection.Metadata.Ecma335;
 
 namespace ExchangeRate.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly HttpClient client = new HttpClient();
 
         public HomeController(ILogger<HomeController> logger)
         {
             _logger = logger;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            ExchangeRates model = new ExchangeRates();
+            await GetRates(model,Currency.usd);
+            await GetRates(model,Currency.eur);
             return View();
         }
 
@@ -33,5 +41,35 @@ namespace ExchangeRate.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+
+
+        public async Task GetRates(ExchangeRates exchangeRates, Currency code)
+        {
+            try
+            {
+
+                HttpResponseMessage response = await client.GetAsync("http://api.nbp.pl/api/exchangerates/rates/a/" + code.ToString() + "/last/10/?format=json");
+                response.EnsureSuccessStatusCode();
+                string responseBody = await response.Content.ReadAsStringAsync();
+                List<Rate> rateList = (JObject.Parse(responseBody)["rates"]).ToObject<List<Rate>>();
+                switch (code)
+                {
+                    case Currency.usd:
+                        exchangeRates.usdRates = rateList;
+                        break;
+                    case Currency.eur:
+                        exchangeRates.eurRates = rateList;
+                        break;
+                }
+
+            }
+            catch (HttpRequestException e)
+            {
+                Console.WriteLine("\nException Caught!");
+                Console.WriteLine("Message :{0} ", e.Message);
+            }
+        }
+
     }
+    public enum Currency {eur,usd};
 }
