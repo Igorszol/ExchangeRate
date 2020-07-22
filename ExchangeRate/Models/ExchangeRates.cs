@@ -12,6 +12,8 @@ namespace ExchangeRate.Models
         public List<Rate> usdRates { get; set; }
         public List<Rate> eurRates { get; set; }
 
+        public double usdDiff { get; set; }
+        public double eurDiff { get; set; }
   
     }
 }

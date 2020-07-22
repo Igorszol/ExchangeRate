@@ -1,8 +1,116 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model ExchangeRates
+@{
+    var XLabels = Newtonsoft.Json.JsonConvert.SerializeObject(Model.usdRates.Select(x => x.effectiveDate).ToList());
+    var usdYValues = Newtonsoft.Json.JsonConvert.SerializeObject(Model.usdRates.Select(x => x.mid).ToList());
+    var eurYValues = Newtonsoft.Json.JsonConvert.SerializeObject(Model.eurRates.Select(x => x.mid).ToList());
+    ViewData["Title"] = "Exchange Rates";
 }
+<div>
+    <h1>PLN Exchange Rate</h1>
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+        <p style="text-align:center;margin-bottom:-5px">Select currency</p>
+    <div class="chart-container">
+            <canvas id="chart" style="width:100%; height:500px"></canvas>
+    </div>
 </div>
+<div class="row">
+    <div class="col">
+        <h3 class="display-4" style="text-align:center">USD</h3>
+  
+
+        <p style="text-align:center">
+            @Math.Round(Model.usdRates[Model.usdRates.Count - 1].mid, 3) PLN&nbsp;
+            @{
+                if (Model.usdDiff < 0)
+                {
+                    <red_label>@Model.usdDiff%</red_label>
+                }
+                else
+                {
+                    <green_label>@Model.usdDiff%</green_label>
+                }
+            }
+        </p>
+
+    </div>
+    <div class="col">
+        <h3 class="display-4"  style="text-align:center">EUR</h3>
+            <p  style="text-align:center">
+                @Math.Round(Model.eurRates[Model.eurRates.Count - 1].mid, 3) PLN&nbsp;
+                        @{
+                            if (Model.eurDiff < 0)
+                            {
+                                <red_label>@Model.eurDiff%</red_label>
+                            }
+                            else
+                            {
+                                <green_label>@Model.eurDiff%</green_label>
+                            }
+                        }
+                    </p>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+
+<script type="text/javascript">
+
+        $(function () {
+    var chartName = "chart";
+        var ctx = document.getElementById(chartName).getContext('2d');
+            var data = {
+                labels: @Html.Raw(XLabels),
+                datasets: [{
+                    label: "USD",
+                    backgroundColor: 'rgba(255, 99, 132, 0)',
+                    borderColor: 'rgba(255,99,132,1)',
+                    borderWidth: 1,
+                    data: @Html.Raw(usdYValues),
+    },{
+                    label: "EUR",
+                        backgroundColor: 'rgba(54, 162, 235, 0)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    data: @Html.Raw(eurYValues),
+    }]
+            };
+
+var options = {
+                maintainAspectRatio: false,
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                        },
+}],
+                    xAxes: [{
+                        ticks: {
+                            min: 0,
+                            beginAtZero: true
+                        },
+                        gridLines: {
+                            display: false
+                        }
+                    }]
+                }
+            };
+
+       var myChart = new  Chart(ctx, {
+                options: options,
+                data: data,
+                type:'line'
+
+            });
+        });
+</script>
+
+
+<style>
+    .green_label {
+        color: green;
+    }
+
+    red_label {
+        color: red;
+    }
+</style>

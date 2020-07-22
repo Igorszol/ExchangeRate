@@ -9,7 +9,6 @@ using ExchangeRate.Models;
 using System.Net;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
-using System.Reflection.Metadata.Ecma335;
 
 namespace ExchangeRate.Controllers
 {
@@ -26,9 +25,10 @@ namespace ExchangeRate.Controllers
         public async Task<IActionResult> Index()
         {
             ExchangeRates model = new ExchangeRates();
+            //fetch data
             await GetRates(model,Currency.usd);
             await GetRates(model,Currency.eur);
-            return View();
+            return View(model);
         }
 
         public IActionResult Privacy()
@@ -47,8 +47,8 @@ namespace ExchangeRate.Controllers
         {
             try
             {
-
-                HttpResponseMessage response = await client.GetAsync("http://api.nbp.pl/api/exchangerates/rates/a/" + code.ToString() + "/last/10/?format=json");
+                int howMany = 10;
+                HttpResponseMessage response = await client.GetAsync("http://api.nbp.pl/api/exchangerates/rates/a/" + code.ToString() + "/last/"+howMany.ToString()+"/?format=json");
                 response.EnsureSuccessStatusCode();
                 string responseBody = await response.Content.ReadAsStringAsync();
                 List<Rate> rateList = (JObject.Parse(responseBody)["rates"]).ToObject<List<Rate>>();
@@ -56,19 +56,23 @@ namespace ExchangeRate.Controllers
                 {
                     case Currency.usd:
                         exchangeRates.usdRates = rateList;
+                        exchangeRates.usdDiff = Math.Round((exchangeRates.usdRates[howMany-1].mid - exchangeRates.usdRates[howMany - 2].mid) / exchangeRates.usdRates[howMany - 2].mid*100,3);
                         break;
                     case Currency.eur:
                         exchangeRates.eurRates = rateList;
+                        exchangeRates.eurDiff = Math.Round((exchangeRates.eurRates[howMany - 1].mid - exchangeRates.eurRates[howMany - 2].mid) / exchangeRates.eurRates[howMany - 2].mid*100,3);
                         break;
                 }
-
             }
             catch (HttpRequestException e)
             {
                 Console.WriteLine("\nException Caught!");
                 Console.WriteLine("Message :{0} ", e.Message);
             }
+
         }
+
+
 
     }
     public enum Currency {eur,usd};
