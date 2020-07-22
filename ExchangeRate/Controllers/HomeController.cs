@@ -9,25 +9,26 @@ using ExchangeRate.Models;
 using System.Net;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
+using ExchangeRate.Services;
 
 namespace ExchangeRate.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
-        private readonly HttpClient client = new HttpClient();
+        private FetchDataService _fetchDataService;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController()
         {
-            _logger = logger;
+            _fetchDataService = new FetchDataService();
         }
 
         public async Task<IActionResult> Index()
         {
             ExchangeRates model = new ExchangeRates();
             //fetch data
-            await GetRates(model,Currency.usd);
-            await GetRates(model,Currency.eur);
+            await _fetchDataService.GetRates(model, Currency.usd);
+            await _fetchDataService.GetRates(model, Currency.eur);
+            if (model.eurRates == null || model.usdRates == null) return View("Error");
             return View(model);
         }
 
@@ -39,41 +40,7 @@ namespace ExchangeRate.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return View();
         }
-
-
-        public async Task GetRates(ExchangeRates exchangeRates, Currency code)
-        {
-            try
-            {
-                int howMany = 10;
-                HttpResponseMessage response = await client.GetAsync("http://api.nbp.pl/api/exchangerates/rates/a/" + code.ToString() + "/last/"+howMany.ToString()+"/?format=json");
-                response.EnsureSuccessStatusCode();
-                string responseBody = await response.Content.ReadAsStringAsync();
-                List<Rate> rateList = (JObject.Parse(responseBody)["rates"]).ToObject<List<Rate>>();
-                switch (code)
-                {
-                    case Currency.usd:
-                        exchangeRates.usdRates = rateList;
-                        exchangeRates.usdDiff = Math.Round((exchangeRates.usdRates[howMany-1].mid - exchangeRates.usdRates[howMany - 2].mid) / exchangeRates.usdRates[howMany - 2].mid*100,3);
-                        break;
-                    case Currency.eur:
-                        exchangeRates.eurRates = rateList;
-                        exchangeRates.eurDiff = Math.Round((exchangeRates.eurRates[howMany - 1].mid - exchangeRates.eurRates[howMany - 2].mid) / exchangeRates.eurRates[howMany - 2].mid*100,3);
-                        break;
-                }
-            }
-            catch (HttpRequestException e)
-            {
-                Console.WriteLine("\nException Caught!");
-                Console.WriteLine("Message :{0} ", e.Message);
-            }
-
-        }
-
-
-
     }
-    public enum Currency {eur,usd};
 }
